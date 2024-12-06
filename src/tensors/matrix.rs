@@ -714,7 +714,7 @@ impl<F: Ring> Matrix<F> {
         }
     }
 
-    pub fn permute_rows(&self, pv: &Vector<Z>) -> Self {
+    pub fn permute_rows(&self, pv: &Vec<u32>) -> Self {
         assert_eq!(
             self.nrows as usize,
             pv.len(),
@@ -722,7 +722,7 @@ impl<F: Ring> Matrix<F> {
         );
 
         let mut data = Vec::with_capacity(self.data.len());
-        for row_index in &pv.data {
+        for row_index in pv {
             assert!(
                 row_index.lt(&Integer::from(self.nrows)),
                 "Row index out of bounds in permutation vector."
@@ -1241,7 +1241,7 @@ impl<F: Field> Matrix<F> {
     fn lu_decomposition(
         &self,
         early_return: bool,
-    ) -> Result<(Self, Self, Vector<Z>), MatrixError<F>> {
+    ) -> Result<(Self, Self, Vec<u32>), MatrixError<F>> {
         let mut u = self.clone();
         let (l, p) = u.lu_decomposition_in_place(early_return)?;
         Ok((l, u, p))
@@ -1252,13 +1252,13 @@ impl<F: Field> Matrix<F> {
     fn lu_decomposition_in_place(
         &mut self,
         early_return: bool,
-    ) -> Result<(Self, Vector<Z>), MatrixError<F>> {
+    ) -> Result<(Self, Vec<u32>), MatrixError<F>> {
         let one = self.field.one();
 
         let (_, steps) = self.gaussian_elimination_ex(self.ncols as u32, early_return, true)?;
         let steps = steps.expect("Internal Error: steps must be Some");
 
-        let mut pv: Vec<usize> = (0..self.nrows as usize).collect();
+        let mut pv: Vec<u32> = (0..self.nrows).collect();
         for &(i, k, ref multiplier) in &steps {
             if *multiplier == one {
                 pv.swap(i as usize, k as usize);
@@ -1272,11 +1272,7 @@ impl<F: Field> Matrix<F> {
             }
         }
 
-        let mut p_data = Vec::new();
-        for el in pv {
-            p_data.push(Integer::from(el));
-        }
-        Ok((l, Vector::new(p_data, Z)))
+        Ok((l, pv))
     }
 
     /// Write the matrix in echelon form.
