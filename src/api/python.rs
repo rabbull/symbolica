@@ -10262,6 +10262,7 @@ impl PythonMatrix {
         }
     }
 
+    /// Perform LU decomposition over the matrix.
     pub fn lu_decomposition(&self, early_return: bool) -> PyResult<(Self, Self, Vec<u32>)> {
         let (l, u, pv) = self
             .matrix
@@ -10270,6 +10271,8 @@ impl PythonMatrix {
         Ok((Self { matrix: l }, Self { matrix: u }, pv))
     }
 
+    /// Perform LU decomposition over the matrix;
+    /// the current matrix will become U and L will be returned.
     pub fn lu_decomposition_in_place(&mut self, early_return: bool) -> PyResult<(Self, Vec<u32>)> {
         let (l, pv) = self
             .matrix
@@ -10277,6 +10280,7 @@ impl PythonMatrix {
             .map_err(|e| exceptions::PyValueError::new_err(format!("{}", e)))?;
         Ok((Self { matrix: l }, pv))
     }
+
 
     pub fn permute_rows<'py>(
         slf: PyRefMut<'_, Self>,

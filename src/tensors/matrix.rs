@@ -714,6 +714,7 @@ impl<F: Ring> Matrix<F> {
         }
     }
 
+    /// Permutes the rows of the matrix based on the provided permutation vector.
     pub fn permute_rows(&self, pv: &[u32]) -> Self {
         assert_eq!(
             self.nrows as usize,
@@ -1237,7 +1238,7 @@ impl<F: Field> Matrix<F> {
         Ok(rank)
     }
 
-    /// perform LU decomposition over the matrix
+    /// Perform LU decomposition over the matrix.
     pub fn lu_decomposition(
         &self,
         early_return: bool,
@@ -1247,8 +1248,8 @@ impl<F: Field> Matrix<F> {
         Ok((l, u, p))
     }
 
-    /// perform LU decomposition over the matrix
-    /// the current matrix will become U and L will be returned
+    /// Perform LU decomposition over the matrix;
+    /// the current matrix will become U and L will be returned.
     pub fn lu_decomposition_in_place(
         &mut self,
         early_return: bool,
