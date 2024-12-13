@@ -714,7 +714,7 @@ impl<F: Ring> Matrix<F> {
         }
     }
 
-    pub fn permute_rows(&self, pv: &Vec<u32>) -> Self {
+    pub fn permute_rows(&self, pv: &[u32]) -> Self {
         assert_eq!(
             self.nrows as usize,
             pv.len(),
