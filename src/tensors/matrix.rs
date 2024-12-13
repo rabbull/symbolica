@@ -1238,7 +1238,7 @@ impl<F: Field> Matrix<F> {
     }
 
     /// perform LU decomposition over the matrix
-    fn lu_decomposition(
+    pub fn lu_decomposition(
         &self,
         early_return: bool,
     ) -> Result<(Self, Self, Vec<u32>), MatrixError<F>> {
@@ -1249,7 +1249,7 @@ impl<F: Field> Matrix<F> {
 
     /// perform LU decomposition over the matrix
     /// the current matrix will become U and L will be returned
-    fn lu_decomposition_in_place(
+    pub fn lu_decomposition_in_place(
         &mut self,
         early_return: bool,
     ) -> Result<(Self, Vec<u32>), MatrixError<F>> {
