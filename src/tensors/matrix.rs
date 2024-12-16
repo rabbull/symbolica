@@ -1234,7 +1234,7 @@ impl<F: Field> Matrix<F> {
         max_col: u32,
         early_return: bool,
     ) -> Result<u32, MatrixError<F>> {
-        let (rank, _) = self.gaussian_elimination_ex(max_col, early_return, false)?;
+        let (rank, _) = self.gaussian_elimination_impl(max_col, early_return, false)?;
         Ok(rank)
     }
 
@@ -1256,7 +1256,7 @@ impl<F: Field> Matrix<F> {
     ) -> Result<(Self, Vec<u32>), MatrixError<F>> {
         let one = self.field.one();
 
-        let (_, steps) = self.gaussian_elimination_ex(self.ncols as u32, early_return, true)?;
+        let (_, steps) = self.gaussian_elimination_impl(self.ncols as u32, early_return, true)?;
         let steps = steps.expect("Internal Error: steps must be Some");
 
         let mut pv: Vec<u32> = (0..self.nrows).collect();
@@ -1277,7 +1277,7 @@ impl<F: Field> Matrix<F> {
     }
 
     /// Write the matrix in echelon form.
-    fn gaussian_elimination_ex(
+    fn gaussian_elimination_impl(
         &mut self,
         max_col: u32,
         early_return: bool,
@@ -1289,10 +1289,12 @@ impl<F: Field> Matrix<F> {
         let mut steps = if return_steps { Some(Vec::new()) } else { None };
         let mut i = 0;
         for j in 0..max_col {
-            if F::is_zero(&self[(i, j)]) {
+            let val_ij = self.field.add(&self[(i, j)], &zero);
+            if F::is_zero(&val_ij) {
                 let mut pivot_found = false;
                 for k in i + 1..self.nrows {
-                    if !F::is_zero(&self[(k, j)]) {
+                    let val_kj = self.field.add(&self[(k, j)], &zero);
+                    if !F::is_zero(&val_kj) {
                         for l in 0..self.ncols {
                             self.data
                                 .swap((self.ncols * i + l) as usize, (self.ncols * k + l) as usize);
@@ -1318,16 +1320,19 @@ impl<F: Field> Matrix<F> {
             }
 
             for k in i + 1..self.nrows {
-                if !F::is_zero(&self[(k, j)]) {
-                    let multiplier = self.field.div(&self[(k, j)], &self[(i, j)]);
+                let val_kj = self.field.add(&self[(k, j)], &zero);
+                let val_ij = self.field.add(&self[(i, j)], &zero);
+                if !F::is_zero(&val_kj) {
+                    let multiplier = self.field.div(&val_kj, &val_ij);
                     if let Some(ref mut steps) = steps {
                         steps.push((k, i, multiplier.clone()));
                     }
                     self[(k, j)] = zero.clone();
                     for l in j + 1..self.ncols {
+                        let val_il = self.field.add(&self[(i, l)], &zero);
                         let temp = self
                             .field
-                            .sub(&self[(k, l)], &self.field.mul(&multiplier, &self[(i, l)]));
+                            .sub(&self[(k, l)], &self.field.mul(&multiplier, &val_il));
                         self[(k, l)] = temp;
                     }
                 }
@@ -1503,12 +1508,12 @@ impl<F: Field> Matrix<F> {
 #[cfg(test)]
 mod test {
     use crate::{
-        atom::Atom,
-        domains::{atom::AtomField, integer::Z, rational::Q},
+        atom::{Atom, AtomView},
+        domains::{atom::AtomField, integer::Z, rational::Q, Ring},
         symb,
         tensors::matrix::{Matrix, Vector},
     };
-    use std::ops::Mul;
+    use std::ops::{Mul, Sub};
 
     #[test]
     fn basics() {
@@ -1793,8 +1798,39 @@ mod test {
                 vec![7.into(), 8.into(), 9.into()],
             ],
             Q,
-        ).unwrap();
+        )
+        .unwrap();
         let (res_l, res_u, res_pv) = m2.lu_decomposition(false).unwrap();
         assert_eq!(res_l.mul(&res_u), m2.permute_rows(&res_pv));
+
+        let field = AtomField {
+            cancel_check_on_division: true,
+            custom_normalization: Some(Box::new(|a: AtomView, out: &mut Atom| {
+                *out = a.expand().collect_num();
+                true
+            }))
+        };
+        let zero = &field.zero();
+        let m3 = Matrix::from_nested_vec(
+            vec![
+                vec![Atom::new_num(2), Atom::new_num(3), Atom::new_num(5)],
+                vec![
+                    Atom::parse("(x+3)^2-x^2-6*x-2").unwrap(),
+                    Atom::new_num(11),
+                    Atom::new_num(13),
+                ],
+                vec![Atom::new_num(17), Atom::new_num(23), Atom::new_num(31)],
+            ], field.clone()).unwrap();
+        let (res_l, res_u, res_pv) = m3.lu_decomposition(false).unwrap();
+
+        let prod = res_l.mul(&res_u);
+        let perm = m3.permute_rows(&res_pv);
+        for i in 0..3 {
+            for j in 0..3 {
+                let lhs = &prod[(i, j)];
+                let rhs = &perm[(i, j)];
+                assert_eq!(&zero.clone(), &field.sub(lhs, rhs));
+            }
+        }
     }
 }
