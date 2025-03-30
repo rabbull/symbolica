@@ -209,6 +209,7 @@ impl State {
     }
 
     #[inline(always)]
+    #[allow(dead_code)]
     pub(crate) unsafe fn symbol_from_id(id: u32) -> Symbol {
         if ID_TO_STR.len() == 0 {
             let _ = *STATE; // initialize the state
@@ -909,7 +910,7 @@ mod tests {
     fn custom_normalization() {
         let _real_log = symbol!(
             "custom_normalization_real_log";;
-            Box::new(|input, out| {
+            |input, out| {
                 if let AtomView::Fun(f) = input {
                     if f.get_nargs() == 1 {
                         let arg = f.iter().next().unwrap();
@@ -925,7 +926,7 @@ mod tests {
                 }
 
                 false
-            })
+            }
         )
         .unwrap();
 

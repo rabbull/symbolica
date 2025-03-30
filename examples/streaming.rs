@@ -18,7 +18,7 @@ fn main() {
     stream.push(input);
 
     // map every term in the expression
-    stream = stream.map(|x| x.replace_all(&pattern, &rhs, None, None).expand());
+    stream = stream.map(|x| x.replace(&pattern).with(&rhs).expand());
 
     let res = stream.to_expression();
     println!("\t+ {}", res);
